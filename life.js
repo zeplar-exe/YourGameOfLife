@@ -15,7 +15,7 @@ class AutomatonBoard {
             throw new Error("Dimension metrics must be provided as integers larger than or equal to 0.")
 
         this.dimensions = dimensions;
-        this.board = Array(dimensions.slice(1).reduce((acc, val) => acc * val, dimensions[0]));
+        this.board = Array(this.getCellCount());
 
         for (let i = 0; i < this.getCellCount(); i++) {
             this.board[i] = new AutomatonCell(0);
@@ -49,7 +49,7 @@ class AutomatonBoard {
     }
 
     getCellCount() {
-        return this.ravelCoordinate(this.dimensions) + 1
+        return this.dimensions.reduce((acc, val) => acc * val, 1)
     }
 
     getCell(i) {
