@@ -1,0 +1,24 @@
+<html>
+
+<head>
+    <title>Your Game of Life</title>
+
+    <link rel="stylesheet" href="index.css">
+
+    <script src="life.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://twgljs.org/dist/4.x/twgl-full.min.js"></script>
+</head>
+
+<body>
+    <canvas id="board-canvas"></canvas>
+    <div id="overlay">
+        <div id="title-input-container">
+            <input id="title-input" type="text" value="Your Game of Life" oninput="document.title = $('#title-input').val()">
+        </div>
+    </div>
+
+    <script src="index.js"></script>
+</body>
+
+</html>
