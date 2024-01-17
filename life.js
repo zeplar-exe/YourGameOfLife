@@ -15,11 +15,7 @@ class AutomatonBoard {
             throw new Error("Dimension metrics must be provided as integers larger than or equal to 0.")
 
         this.dimensions = dimensions;
-        this.board = Array(this.getCellCount());
-
-        for (let i = 0; i < this.getCellCount(); i++) {
-            this.board[i] = new AutomatonCell(0);
-        }
+        this.board = new Uint8Array(this.getCellCount()).fill(0);
 
         this.rules = rules;
         this.states = states;
@@ -61,24 +57,23 @@ class AutomatonBoard {
     }
 
     getCellState(i) {
-        return this.states[this.getCell(i).stateIndex];
+        return this.states[this.getCell(i)];
     }
 
     getCellStateByCoord(coordinate) {
-        return this.states[this.getCell(this.ravelCoordinate(coordinate)).stateIndex];
+        return this.states[this.getCell(this.ravelCoordinate(coordinate))];
     }
 
     setCellStateIndex(i, stateIndex) {
-        this.getCell(i).stateIndex = stateIndex;
+        this.board[i] = stateIndex;
     }
 
     setCellStateIndexByCoord(coordinate, stateIndex) {
-        this.getCell(this.ravelCoordinate(coordinate)).stateIndex = stateIndex;
+        this.board[this.ravelCoordinate(coordinate)] = stateIndex;
     }
 
     getCellStateNextStep(i) {
-        let cell = this.board[i];
-        let initialState = cell.state;
+        let initialState = this.board[i];
 
         for (const rule of this.rules) {
             if (rule.initialState !== initialState)
@@ -102,7 +97,7 @@ class AutomatonBoard {
         let newBoard = Array(boardLength);
 
         for (let i = 0; i < boardLength; i++) {
-            newBoard[i].state = this.getCellStateNextStep(i);
+            newBoard[i] = this.getCellStateNextStep(i);
         }
 
         return newBoard;
@@ -110,14 +105,6 @@ class AutomatonBoard {
 
     step() {
         this.board = this.dryStep();
-    }
-}
-
-class AutomatonCell {
-    stateIndex;
-
-    constructor(stateIndex) {
-        this.stateIndex = stateIndex;
     }
 }
 
@@ -154,7 +141,7 @@ class AutomatonNeighborExactCritera {
         let testCoordinate = coordinateSum(targetCellCoordinate, criteria.relativePosition)
         let targetCell = board.getCellByCoord(testCoordinate)
 
-        if (targetCell.stateIndex === criteria.stateIndex)
+        if (targetCell === criteria.stateIndex)
             return true
     }
 }
@@ -192,7 +179,7 @@ class AutomatonNeighborCountCritera {
         }
         
         let neighborCount = radiusCombinations(targetCellCoordinate, r)
-            .filter(coord => board.getCellByCoord(coord).stateIndex = this.stateIndex)
+            .filter(coord => board.setCellStateIndexByCoord(coord, this.stateIndex))
             .length;
 
         return this.countPredicate(neighborCount);

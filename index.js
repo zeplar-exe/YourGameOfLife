@@ -3,68 +3,94 @@ var board;
 var tilemap;
 var tilemapU8;
 var mapTexture;
-var tileTexture;
+var tilesetTexture;
 
-const vs = `
-  attribute vec4 position;
-  //attribute vec4 texcoord; - since position is a unit square just use it for texcoords
+var vbo;
+var vao;
 
-  uniform mat4 u_matrix;
-  uniform mat4 u_texMatrix;
+const vertexShader = `
+#version 300 es
 
-  varying vec2 v_texcoord;
+precision highp float;
 
-  void main() {
-    gl_Position = u_matrix * position;
-    v_texcoord = (u_texMatrix * position).xy;
-  }
-`;
+uniform mat4 u_matrix;
+uniform ivec2 u_mapSize;
 
-const fs = `
-  precision highp float;
+layout (location = 0) in uint aTileId;
 
-  uniform sampler2D u_tilemap;
-  uniform sampler2D u_tileset;
-  uniform vec2 u_tilemapSize;
-  uniform vec2 u_tilesetSize;
+flat out uint tileId;
 
-  varying vec2 v_texcoord;
+void main()
+{
+    int i = gl_VertexID;
+    float x = float(i / u_mapSize.y); //float(i & 15);
+    float y = float(i % u_mapSize.y); //float((i >> 4) & 15);
+    gl_Position = vec4(x, y, 0, 1);
+    
+    tileId = aTileId;
+}`
+const geometryShader = `
+#version 300 es
 
-  void main() {
-    vec2 tilemapCoord = floor(v_texcoord);
-    vec2 texcoord = fract(v_texcoord);
-    vec2 tileFoo = fract((tilemapCoord + vec2(0.5, 0.5)) / u_tilemapSize);
-    vec4 tile = floor(texture2D(u_tilemap, tileFoo) * 256.0);
+precision highp float;
 
-    //vec2 tileCoord = (tile.xy + texcoord) / u_tilesetSize;
-    vec4 color = texture2D(u_tileset, vec2(1, 0)); //texture2D(u_tileset, tileCoord);
+uniform mat4 u_matrix;
 
-    if (color.a <= 0.1) {
-      discard;
-    }
+flat in uint tileId;
+out vec2 texCoord;
 
-    gl_FragColor = color;
-  }
-`;
+layout (points) in;
+layout (triangle_strip, max_vertices = 4) out;
+
+void main() {
+    // uint tileId = gs_in[0].tileId & 255u;
+    float tileX = float(tileId & 15u);
+    float tileY = 0.0;
+
+    const float B = 1.0 / 256.0;
+    const float S = 1.0 / 16.0;
+
+    gl_Position = u_matrix * gl_Position;
+    texCoord = vec2(tileX + B, tileY + B);
+    EmitVertex();
+
+    gl_Position = u_matrix * (gl_Position + vec4(1.0, 0.0, 0.0, 0.0));
+    texCoord = vec2(tileX + S - B, tileY + B);
+    EmitVertex();
+
+    gl_Position = u_matrix * (gl_Position + vec4(0.0, 1.0, 0.0, 0.0));
+    texCoord = vec2(tileX + B, tileY + S - B);
+    EmitVertex();
+
+    gl_Position = u_matrix * (gl_Position + vec4(1.0, 1.0, 0.0, 0.0));
+    texCoord = vec2(tileX + S - B, tileY + S - B);
+    EmitVertex();
+
+    EndPrimitive();
+}`
+const fragmentShader = `
+#version 300 es
+
+precision highp float;
+
+uniform sampler2D texture0;
+flat in vec2 texCoord;
+flat out vec4 FragColor;
+
+void main()
+{
+    FragColor = texture(texture0, texCoord);
+}`
 
 const m4 = twgl.m4;
-const gl = canvas.getContext('webgl');
+const gl = canvas.getContext('webgl2');
 
-const programInfo = twgl.createProgramInfo(gl, [vs, fs]);
-const bufferInfo = twgl.createBufferInfoFromArrays(gl, {
-    position: {
-        numComponents: 2,
-        data: [
-            0, 0,
-            1, 0,
-            0, 1,
+const programInfo = twgl.createProgramInfo(gl, [vertexShader, fragmentShader]);
 
-            0, 1,
-            1, 0,
-            1, 1,
-        ],
-    },
-});
+const geometryShaderHandle = gl.createShader(gl.GEOMETRY_SHADER);
+gl.shaderSource(geometryShaderHandle, geometryShader);
+gl.compileShader(geometryShaderHandle);
+gl.attachShader(programInfo.program, geometryShaderHandle)
 
 function setupBoard(dimensions = [10, 10]) {
     board = new AutomatonBoard(dimensions)
@@ -79,7 +105,7 @@ function setupBoard(dimensions = [10, 10]) {
 
     for (let i = 0; i < tilemap.length; i++) {
         let cell = board.getCell(i)
-        
+
         tilemapU8[i * 4 + 0] = cell.stateIndex
         tilemapU8[i * 4 + 1] = 0
         tilemapU8[i * 4 + 2] = 0
@@ -96,7 +122,7 @@ function setupBoard(dimensions = [10, 10]) {
     const ctx = document.createElement('canvas').getContext('2d');
     ctx.canvas.width = board.states.length;
     ctx.canvas.height = 1;
-    
+
     for (let i = 0; i < board.states.length; i++) {
         const state = board.states[i]
 
@@ -104,37 +130,41 @@ function setupBoard(dimensions = [10, 10]) {
         ctx.fillRect(i, 0, 1, 1)
     }
 
-    tileTexture = twgl.createTexture(gl, {
+    tilesetTexture = twgl.createTexture(gl, {
         src: ctx.canvas,
         minMag: gl.NEAREST,
     });
+
+    vbo = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo)
+    gl.bufferData(gl.ARRAY_BUFFER, board.board, gl.STATIC_DRAW, 0)
+
+    vao = gl.createVertexArray();
+    gl.bindVertexArray(vao)
+    gl.enableVertexAttribArray(0)
+    gl.vertexAttribIPointer(0, 1, gl.UNSIGNED_BYTE, true, 0)
 }
 
 function renderBoard(time) {
     time *= 0.001;  // convert to seconds;
 
-    const mat = m4.ortho(0, gl.canvas.width, gl.canvas.height, 0, -1, 1);
-    m4.scale(mat, [gl.canvas.width, gl.canvas.height, 1], mat);
-
-    const tmat = m4.identity();
+    gl.bindTexture(gl.TEXTURE_2D, tilesetTexture)
+    gl.bindVertexArray(vao)
 
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clearColor(0, 1, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    gl.useProgram(programInfo.program);
-    twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
+    const mat = m4.ortho(0, gl.canvas.width, gl.canvas.height, 0, -1, 1);
+    m4.scale(mat, [32, 32, 1], mat);
 
     twgl.setUniforms(programInfo, {
         u_matrix: mat,
-        u_texMatrix: tmat,
-        u_tilemap: mapTexture,
-        u_tileset: tileTexture,
-        u_tilemapSize: board.dimensions,
-        u_tilesetSize: [ board.states.length, 1 ]
+        u_mapSize: board.dimensions
     });
 
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.useProgram(programInfo.program);
+    gl.drawArrays(gl.POINTS, 0, board.getCellCount())
 
     requestAnimationFrame(renderBoard);
 }
