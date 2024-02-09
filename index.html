@@ -13,6 +13,8 @@
 <body>
     <canvas id="board-canvas"></canvas>
     <div id="overlay">
+        <button id="step-button" onclick="step()">Step</button>
+        <button onclick="playPause()">PlayPause</button>
         <div id="title-input-container">
             <input id="title-input" type="text" value="Your Game of Life" oninput="document.title = $('#title-input').val()">
         </div>

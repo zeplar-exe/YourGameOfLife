@@ -2,11 +2,32 @@ function coordinateSum(a, b) {
     return a.map((e, i) => e + b[i]);
 }
 
+function radiusCoordinates(dimCount, radius) {
+    function recurse(dims, idx, radius) {
+        let results = [];
+        
+        for (let n = -radius; n <= radius; n++) {
+            let comb = dims.slice();
+            comb[idx] = n;
+    
+            if (idx + 1 < dims.length)
+                results = results.concat(recurse(comb, idx + 1, radius));
+            else if (!comb.every(i => i === 0))
+                results.push(comb);
+        }
+        
+        return results;
+    }
+    
+    return recurse(Array(dimCount).fill(0), 0, radius)
+}
+
 class AutomatonBoard {
     dimensions;
     board;
     rules;
     states;
+    computedRadiusCoordinates;
 
     constructor(dimensions, rules=PresetAutomatonRules.Conway, states=PresetCellStates.Conway) {
         if (dimensions.length == 0)
@@ -15,6 +36,7 @@ class AutomatonBoard {
             throw new Error("Dimension metrics must be provided as integers larger than or equal to 0.")
 
         this.dimensions = dimensions;
+        this.computedRadiusCoordinates = radiusCoordinates(this.dimensions.length, 1)
         this.board = new Uint8Array(this.getCellCount()).fill(0);
 
         this.rules = rules;
@@ -25,7 +47,7 @@ class AutomatonBoard {
         let coordinate = []
 
         this.dimensions.reverse().forEach(d => {
-            coordinate.push(index % this.dimensions)
+            coordinate.push(index % d)
             index = Math.floor(index / d)
         })
 
@@ -73,16 +95,13 @@ class AutomatonBoard {
     }
 
     getCellStateNextStep(i) {
-        let initialState = this.board[i];
+        let initialState = this.getCell(i);
 
-        for (const rule of this.rules) {
-            if (rule.initialState !== initialState)
-                continue;
-
-            let coordinate = this.unravelIndex(i)
-
+        for (const rule of this.rules.filter(r => r.initialState === initialState)) {
+            let coordinate = this.unravelIndex(i);
+            
             if (rule.neighborCriteria.every(c => c.test(this, coordinate)))
-                return rule.finalState
+                return rule.finalState;
         }
 
         return initialState
@@ -95,7 +114,7 @@ class AutomatonBoard {
     dryStep() {
         let boardLength = this.board.length;
         let newBoard = Array(boardLength);
-
+        
         for (let i = 0; i < boardLength; i++) {
             newBoard[i] = this.getCellStateNextStep(i);
         }
@@ -149,38 +168,15 @@ class AutomatonNeighborExactCritera {
 class AutomatonNeighborCountCritera {
     countPredicate;
     stateIndex;
-    radius;
 
-    constructor(countPredicate, stateIndex, radius=1) {
+    constructor(countPredicate, stateIndex) {
         this.countPredicate = countPredicate;
         this.stateIndex = stateIndex;
-        this.radius = radius;
     }
 
     test(board, targetCellCoordinate) {
-        function radiusCombinations(center, radius) {
-            function recurse(dims, idx, radius) {
-                let results = [];
-                
-                for (let n = -radius; n <= radius; n++) {
-                    let comb = dims.slice();
-                    comb[idx] = n;
-            
-                    if (idx + 1 < dims.length)
-                        results = results.concat(combinations(comb, idx + 1, radius));
-                    else
-                        results.push(comb);
-                }
-            
-                return results;
-            }
-            
-            return recurse(center, 0, radius)
-        }
-        
-        let neighborCount = radiusCombinations(targetCellCoordinate, r)
-            .filter(coord => board.setCellStateIndexByCoord(coord, this.stateIndex))
-            .length;
+        let coordinates = board.computedRadiusCoordinates.map(c => coordinateSum(c, targetCellCoordinate))
+        let neighborCount = coordinates.filter(coord => board.getCellByCoord(coord) === this.stateIndex).length;
 
         return this.countPredicate(neighborCount);
     }

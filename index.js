@@ -1,173 +1,188 @@
-const canvas = $("#board-canvas")[0]
-var board;
-var tilemap;
-var tilemapU8;
-var mapTexture;
-var tilesetTexture;
+const vs = `
+  attribute vec4 position;
+  //attribute vec4 texcoord; - since position is a unit square just use it for texcoords
 
-var vbo;
-var vao;
+  uniform mat4 u_matrix;
+  uniform mat4 u_texMatrix;
 
-const vertexShader = `
-#version 300 es
+  varying vec2 v_texcoord;
 
-precision highp float;
+  void main() {
+    gl_Position = u_matrix * position;
+    // v_texcoord = (u_texMatrix * texccord).xy;
+    v_texcoord = (u_texMatrix * position).xy;
+  }
+`;
 
-uniform mat4 u_matrix;
-uniform ivec2 u_mapSize;
+const fs = `
+  precision highp float;
 
-layout (location = 0) in uint aTileId;
+  uniform sampler2D u_tilemap;
+  uniform sampler2D u_tiles;
+  uniform vec2 u_tilemapSize;
+  uniform vec2 u_tilesetSize;
 
-flat out uint tileId;
+  varying vec2 v_texcoord;
 
-void main()
-{
-    int i = gl_VertexID;
-    float x = float(i / u_mapSize.y); //float(i & 15);
-    float y = float(i % u_mapSize.y); //float((i >> 4) & 15);
-    gl_Position = vec4(x, y, 0, 1);
-    
-    tileId = aTileId;
-}`
-const geometryShader = `
-#version 300 es
+  void main() {
+    vec2 tilemapCoord = floor(v_texcoord);
+    vec2 texcoord = fract(v_texcoord);
+    vec2 tileFoo = fract((tilemapCoord + vec2(0.5, 0.5)) / u_tilemapSize);
+    vec4 tile = floor(texture2D(u_tilemap, tileFoo) * 256.0);
 
-precision highp float;
+    vec2 tileCoord = (tile.xy + texcoord) / u_tilesetSize;
+    vec4 color = texture2D(u_tiles, tileCoord);
+    if (color.a <= 0.1) {
+      discard;
+    }
+    gl_FragColor = color;
+  }
+`;
 
-uniform mat4 u_matrix;
-
-flat in uint tileId;
-out vec2 texCoord;
-
-layout (points) in;
-layout (triangle_strip, max_vertices = 4) out;
-
-void main() {
-    // uint tileId = gs_in[0].tileId & 255u;
-    float tileX = float(tileId & 15u);
-    float tileY = 0.0;
-
-    const float B = 1.0 / 256.0;
-    const float S = 1.0 / 16.0;
-
-    gl_Position = u_matrix * gl_Position;
-    texCoord = vec2(tileX + B, tileY + B);
-    EmitVertex();
-
-    gl_Position = u_matrix * (gl_Position + vec4(1.0, 0.0, 0.0, 0.0));
-    texCoord = vec2(tileX + S - B, tileY + B);
-    EmitVertex();
-
-    gl_Position = u_matrix * (gl_Position + vec4(0.0, 1.0, 0.0, 0.0));
-    texCoord = vec2(tileX + B, tileY + S - B);
-    EmitVertex();
-
-    gl_Position = u_matrix * (gl_Position + vec4(1.0, 1.0, 0.0, 0.0));
-    texCoord = vec2(tileX + S - B, tileY + S - B);
-    EmitVertex();
-
-    EndPrimitive();
-}`
-const fragmentShader = `
-#version 300 es
-
-precision highp float;
-
-uniform sampler2D texture0;
-flat in vec2 texCoord;
-flat out vec4 FragColor;
-
-void main()
-{
-    FragColor = texture(texture0, texCoord);
-}`
+const tileSize = 2;
 
 const m4 = twgl.m4;
-const gl = canvas.getContext('webgl2');
+const gl = document.querySelector('#board-canvas').getContext('webgl');
 
-const programInfo = twgl.createProgramInfo(gl, [vertexShader, fragmentShader]);
+var board;
+var tilemapU8;
+var mapTexture;
 
-const geometryShaderHandle = gl.createShader(gl.GEOMETRY_SHADER);
-gl.shaderSource(geometryShaderHandle, geometryShader);
-gl.compileShader(geometryShaderHandle);
-gl.attachShader(programInfo.program, geometryShaderHandle)
+// compile shaders, link, look up locations
+const programInfo = twgl.createProgramInfo(gl, [vs, fs]);
+// gl.createBuffer, bindBuffer, bufferData
+const bufferInfo = twgl.createBufferInfoFromArrays(gl, {
+  position: {
+    numComponents: 2,
+    data: [
+      0, 0,
+      1, 0,
+      0, 1,
+      
+      0, 1,
+      1, 0,
+      1, 1,
+    ],
+  },
+});
 
-function setupBoard(dimensions = [10, 10]) {
-    board = new AutomatonBoard(dimensions)
-    board.setCellStateIndex(0, 1)
-    board.setCellStateIndex(1, 1)
-    board.setCellStateIndex(2, 1)
+function setupBoard(dimensions = [512, 512]) {
+  gl.useProgram(programInfo.program);
 
-    let tileCount = board.getCellCount()
+  board = new AutomatonBoard(dimensions)
+  board.setCellStateIndexByCoord([1, 2], 1)
+  board.setCellStateIndexByCoord([2, 3], 1)
+  board.setCellStateIndexByCoord([3, 1], 1)
+  board.setCellStateIndexByCoord([3, 2], 1)
+  board.setCellStateIndexByCoord([3, 3], 1)*
 
-    tilemap = new Uint32Array(tileCount)
-    tilemapU8 = new Uint8Array(tilemap.buffer);
+  updateTilemap()
 
-    for (let i = 0; i < tilemap.length; i++) {
-        let cell = board.getCell(i)
+  const ctx = document.createElement('canvas').getContext('2d');
+  ctx.canvas.width = board.states.length;
+  ctx.canvas.height = 1;
 
-        tilemapU8[i * 4 + 0] = cell.stateIndex
-        tilemapU8[i * 4 + 1] = 0
-        tilemapU8[i * 4 + 2] = 0
-        tilemapU8[i * 4 + 3] = 0
-    }
+  for (let i = 0; i < board.states.length; i++) {
+      const state = board.states[i];
 
-    mapTexture = twgl.createTexture(gl, {
-        src: tilemapU8,
-        width: dimensions[0],
-        height: dimensions[1],
-        minMag: gl.NEAREST,
-    });
+      ctx.fillStyle = `rgba(${state.color.join(", ")}, 100%)`;
+      ctx.fillRect(i, 0, 1, 1);
+  }
 
-    const ctx = document.createElement('canvas').getContext('2d');
-    ctx.canvas.width = board.states.length;
-    ctx.canvas.height = 1;
+  tilesetTexture = twgl.createTexture(gl, {
+      src: ctx.canvas,
+      width: board.states.length,
+      height: 1,
+      minMag: gl.NEAREST,
+  });
 
-    for (let i = 0; i < board.states.length; i++) {
-        const state = board.states[i]
-
-        ctx.fillStyle = `rgba(${state.color.join(", ")}, 100%)`
-        ctx.fillRect(i, 0, 1, 1)
-    }
-
-    tilesetTexture = twgl.createTexture(gl, {
-        src: ctx.canvas,
-        minMag: gl.NEAREST,
-    });
-
-    vbo = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vbo)
-    gl.bufferData(gl.ARRAY_BUFFER, board.board, gl.STATIC_DRAW, 0)
-
-    vao = gl.createVertexArray();
-    gl.bindVertexArray(vao)
-    gl.enableVertexAttribArray(0)
-    gl.vertexAttribIPointer(0, 1, gl.UNSIGNED_BYTE, true, 0)
+  gl.bindTexture(gl.TEXTURE_2D, tilesetTexture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 }
 
-function renderBoard(time) {
-    time *= 0.001;  // convert to seconds;
+function updateTilemap() {
+  let cellCount = board.getCellCount()
+  let tilemap = new Uint32Array(cellCount)
+  tilemapU8 = new Uint8Array(tilemap.buffer);
 
-    gl.bindTexture(gl.TEXTURE_2D, tilesetTexture)
-    gl.bindVertexArray(vao)
+  for (let i = 0; i < cellCount; i++) {
+      let cell = board.getCell(i);
+      const off = i * 4;
 
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    gl.clearColor(0, 1, 0, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+      tilemapU8[off + 0] = cell;
+  }
 
-    const mat = m4.ortho(0, gl.canvas.width, gl.canvas.height, 0, -1, 1);
-    m4.scale(mat, [32, 32, 1], mat);
-
-    twgl.setUniforms(programInfo, {
-        u_matrix: mat,
-        u_mapSize: board.dimensions
-    });
-
-    gl.useProgram(programInfo.program);
-    gl.drawArrays(gl.POINTS, 0, board.getCellCount())
-
-    requestAnimationFrame(renderBoard);
+  mapTexture = twgl.createTexture(gl, {
+    src: tilemapU8,
+    width: board.dimensions[0],
+    minMag: gl.NEAREST,
+  });
 }
+
+// origin of scale/rotation
+const originX = gl.canvas.width * 0;
+const originY = gl.canvas.height * 0;
+
+const tmat = m4.identity();
+m4.scale(tmat, [
+  gl.canvas.width / tileSize,
+  gl.canvas.height / tileSize,
+  1,
+], tmat);
+m4.translate(tmat, [ 
+  -originX / gl.canvas.width,
+  -originY / gl.canvas.height,
+   0,
+], tmat);
+
+const mat = m4.ortho(0, gl.canvas.width, gl.canvas.height, 0, -1, 1);
+m4.scale(mat, [gl.canvas.width, gl.canvas.height, 1], mat);
+
+function render(time) {
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  twgl.setUniforms(programInfo, {
+    u_matrix: mat,
+    u_texMatrix: tmat,
+    u_tilemap: mapTexture,
+    u_tiles: tilesetTexture,
+    u_tilemapSize: board.dimensions,
+    u_tilesetSize: [board.states.length, 1],    
+  });
+  
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+  
+  requestAnimationFrame(render);
+}
+
+gl.useProgram(programInfo.program);
+twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
+
+gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+gl.clearColor(0, 1, 0, 1);
 
 setupBoard()
-requestAnimationFrame(renderBoard)
+requestAnimationFrame(render);
+
+function step() {
+  board.step()
+  updateTilemap()
+}
+
+let isPlaying = false;
+let stepsPerSecond = 10;
+let playInterval;
+
+function playPause() {
+  isPlaying = !isPlaying;
+
+  $("#step-button").prop("disabled", isPlaying)
+
+  if (isPlaying) {
+    playInterval = setInterval(step, 1000 / stepsPerSecond)
+  } else {
+    clearInterval(playInterval)
+  }
+}
