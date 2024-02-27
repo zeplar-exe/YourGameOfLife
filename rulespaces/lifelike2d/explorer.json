@@ -1,0 +1,46 @@
+[
+    {
+        "name": "Rules",
+        "type": "rule-group",
+        "children": [
+            {
+                "name": "Conway's Game of Life",
+                "type": "rule",
+                "children": [
+                    {
+                        "name": "Patterns",
+                        "type": "pattern-group",
+                        "children": [
+                            {
+                                "name": "Glider",
+                                "type": "pattern-group",
+                                "children": [
+                                    {
+                                        "name": "Glider (Northwest)",
+                                        "type": "pattern",
+                                        "file": "glider_nw.life"
+                                    },
+                                    {
+                                        "name": "Glider (Northeast)",
+                                        "type": "pattern",
+                                        "file": "glider_ne.life"
+                                    },
+                                    {
+                                        "name": "Glider (Southwest)",
+                                        "type": "pattern",
+                                        "file": "glider_sw.life"
+                                    },
+                                    {
+                                        "name": "Glider (Southeast)",
+                                        "type": "pattern",
+                                        "file": "glider_se.life"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]

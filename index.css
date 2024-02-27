@@ -1,6 +1,7 @@
 html, body {
     width: 100%;
     height: 100%;
+    overflow: hidden;
 }
 
 body {
@@ -14,7 +15,7 @@ body {
     cursor: grab;
 }
 
-#overlay {
+.overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -48,4 +49,30 @@ body {
 
 #title-input:hover {
     background-color: rgba(208, 208, 208, 0.403);
+}
+
+#rulset-explorer {
+    width: 300px;
+    height: 100%;
+    background-color: gray;
+    display: flex;
+    flex-direction: column;
+    border: 5px solid transparent;
+}
+
+#rulset-explorer-view {
+    width: 100%;
+    background-color: white;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    flex-grow: 1;
+}
+
+#ruleset-flag {
+
+}
+
+#ruleset-select {
+    width: 100%;
+    height: auto;
 }
