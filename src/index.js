@@ -34,7 +34,7 @@ function setupBoard(dimensions = [512, 512]) {
   board.setCellStateIndexByCoord([2, 3], 1)
   board.setCellStateIndexByCoord([3, 1], 1)
   board.setCellStateIndexByCoord([3, 2], 1)
-  board.setCellStateIndexByCoord([3, 3], 1)*
+  board.setCellStateIndexByCoord([3, 3], 1)
 
   updateTilemap()
 
@@ -122,32 +122,73 @@ twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
 
 gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 gl.clearColor(0, 1, 0, 1);
-
-setupBoard()
-requestAnimationFrame(render);
-
-function step() {
-  board.step()
-  updateTilemap()
-}
-
-let isPlaying = false;
-let stepsPerSecond = 10;
-let playInterval;
-
-function playPause() {
-  isPlaying = !isPlaying;
-
-  $("#step-button").prop("disabled", isPlaying)
-
-  if (isPlaying) {
-    playInterval = setInterval(step, 1000 / stepsPerSecond)
-  } else {
-    clearInterval(playInterval)
-  }
-}
 */
 
-$(document).ready(function() {
-  $("#ruleset-select").select2();
-});
+import "./index.css"
+import $ from "jquery"
+
+import AutomatonBoard from "./life.js"
+import LifeLike2D from "./rulespaces/lifelike2d/main.js"
+
+function render(time) {
+    let update
+
+    if (time - lastUpdate < (1000 / iterationsPerSecond)) {
+        lastUpdate = time
+        update = true
+    }
+
+    update = update && isPlaying
+
+    if (update || rulespace.updateRequested) {
+        rulespace.updateRequested = false
+        rulespace.step()
+    }
+
+    if (update || rulespace.drawRequested) {
+        rulespace.drawRequested = false
+        rulespace.draw()
+    }
+
+    requestAnimationFrame(render)
+}
+
+function playPause() {
+    isPlaying = !isPlaying;
+
+    $("#step-button").prop("disabled", isPlaying)
+
+    if (isPlaying) {
+        playInterval = setInterval(step, 1000 / stepsPerSecond)
+    } else {
+        clearInterval(playInterval)
+    }
+}
+
+function main() {
+    const gl = $('#board-canvas')[0].getContext('webgl');
+    var board
+    var rulespace
+    var lastUpdate
+    var iterationsPerSecond
+    var isPlaying = false;
+
+    function initRulespace(name) {
+        return {
+            "LifeLike2D": new LifeLike2D(gl, board)
+        }[name]
+    }
+
+    board = new AutomatonBoard([50, 50])
+    board.setCellStateIndexByCoord([1, 2], 1)
+    board.setCellStateIndexByCoord([2, 3], 1)
+    board.setCellStateIndexByCoord([3, 1], 1)
+    board.setCellStateIndexByCoord([3, 2], 1)
+    board.setCellStateIndexByCoord([3, 3], 1)
+    rulespace = initRulespace("LifeLike2D")
+
+    $("#ruleset-select").select2();
+    requestAnimationFrame(render)
+}
+
+$(main)

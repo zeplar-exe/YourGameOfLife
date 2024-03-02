@@ -6,6 +6,8 @@
             {
                 "name": "Conway's Game of Life",
                 "type": "rule",
+                "author": "John Conway",
+                "rulestring": "B3/S23",
                 "children": [
                     {
                         "name": "Patterns",
@@ -39,6 +41,15 @@
                             }
                         ]
                     }
+                ]
+            },
+            {
+                "name": "Seeds",
+                "type": "rule",
+                "author": "David Silverman",
+                "rulestring": "B2/S",
+                "children": [
+                    
                 ]
             }
         ]

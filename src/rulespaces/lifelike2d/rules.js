@@ -1,4 +1,4 @@
-function parseBSRuleString(ruleString) {
+export function parseBSRuleString(ruleString) {
     let birthRule = new Array(9).fill(false)
     let surviveRule = new Array(9).fill(false)
     let parts = ruleString.split("/").map(p => p.replace(/\s+/g, ""))
@@ -34,21 +34,4 @@ function parseBSRuleString(ruleString) {
     }
 
     return [birthRule, surviveRule]
-}
-
-const Presets = [
-    {
-        Name: "Conway's Game of Life",
-        Author: "John Conway",
-        RuleString: "B3/S23"
-    },
-    {
-        Name: "Seeds",
-        Author: "Brian Silverman",
-        RuleString: "B2/S"
-    }
-]
-
-for (const preset of Presets) {
-    preset["PrecomputedRule"] = parseBSRuleString(preset["RuleString"])
 }
