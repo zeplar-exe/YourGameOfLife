@@ -10,8 +10,8 @@ body {
 }
 
 #board-canvas {
-    width: 2000px;
-    height: 1000px;
+    width: 1000px;
+    height: 500px;
     cursor: grab;
 }
 

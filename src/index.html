@@ -1,0 +1,38 @@
+<html>
+
+<head>
+    <title>Your Game of Life</title>
+
+    <!-- webpack -->
+    <script src="bundle.js"></script>
+    
+    <!-- twgl -->
+    <script src="https://twgljs.org/dist/4.x/twgl-full.min.js"></script>
+
+    <!-- select2 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="styleseet"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+</head>
+
+<body>
+    <canvas id="board-canvas"></canvas>
+    <div class="overlay" style="visibility:hidden;">
+        <div id="rulset-explorer">
+            <select id="ruleset-select">
+                <option value="LifeLike2D">Lifelike 2D</option>
+            </select>
+            <div id="rulset-explorer-view">
+                
+            </div>
+        </div>
+    </div>
+    <div class="overlay" style="visibility:hidden;">
+        <button id="step-button" onclick="step()">Step</button>
+        <button onclick="playPause()">PlayPause</button>
+        <div id="title-input-container">
+            <input id="title-input" type="text" value="Your Game of Life" oninput="document.title = $('#title-input').val()">
+        </div>
+    </div>
+</body>
+
+</html>

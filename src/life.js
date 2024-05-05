@@ -1,8 +1,6 @@
 export default class AutomatonBoard {
     dimensions;
-    board;
-    rules;
-    states;
+    data;
 
     constructor(dimensions) {
         if (dimensions.length == 0)
@@ -11,7 +9,7 @@ export default class AutomatonBoard {
             throw new Error("Dimension metrics must be provided as integers larger than or equal to 0.")
 
         this.dimensions = dimensions;
-        this.board = new Uint8Array(this.getCellCount()).fill(0);
+        this.data = new Uint8Array(this.getCellCount()).fill(0);
     }
 
     unravelIndex(index) {
@@ -42,7 +40,7 @@ export default class AutomatonBoard {
     }
 
     getCell(i) {
-        return this.board[i];
+        return this.data[i];
     }
 
     getCellByCoord(coordinate) {
@@ -58,10 +56,10 @@ export default class AutomatonBoard {
     }
 
     setCellStateIndex(i, stateIndex) {
-        this.board[i] = stateIndex;
+        this.data[i] = stateIndex;
     }
 
     setCellStateIndexByCoord(coordinate, stateIndex) {
-        this.board[this.ravelCoordinate(coordinate)] = stateIndex;
+        this.data[this.ravelCoordinate(coordinate)] = stateIndex;
     }
 }

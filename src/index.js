@@ -128,67 +128,73 @@ import "./index.css"
 import $ from "jquery"
 
 import AutomatonBoard from "./life.js"
-import LifeLike2D from "./rulespaces/lifelike2d/main.js"
+import Life2D from "./rulespaces/life2d/main.js"
+
+var gl;
+var board;
+var rulespace;
+var timeOfLastUpdate = 0;
+var iterationsPerSecond = 100;
+var isPlaying = true;
 
 function render(time) {
-    let update
+  let update;
 
-    if (time - lastUpdate < (1000 / iterationsPerSecond)) {
-        lastUpdate = time
-        update = true
-    }
+  if ((time - timeOfLastUpdate) > (1000 / iterationsPerSecond)) {
+      timeOfLastUpdate = 0
+      update = true
+  }
 
-    update = update && isPlaying
+  update = update && isPlaying
 
-    if (update || rulespace.updateRequested) {
-        rulespace.updateRequested = false
-        rulespace.step()
-    }
+  if (update || rulespace.updateRequested) {
+      rulespace.updateRequested = false
+      rulespace.step(gl)
+  }
 
-    if (update || rulespace.drawRequested) {
-        rulespace.drawRequested = false
-        rulespace.draw()
-    }
+  if (update || rulespace.drawRequested) {
+      rulespace.drawRequested = false
+      rulespace.draw(gl)
+  }
 
-    requestAnimationFrame(render)
+  requestAnimationFrame(render)
 }
 
 function playPause() {
-    isPlaying = !isPlaying;
+  isPlaying = !isPlaying;
 
-    $("#step-button").prop("disabled", isPlaying)
+  $("#step-button").prop("disabled", isPlaying)
 
-    if (isPlaying) {
-        playInterval = setInterval(step, 1000 / stepsPerSecond)
-    } else {
-        clearInterval(playInterval)
-    }
+  if (isPlaying) {
+      playInterval = setInterval(step, 1000 / stepsPerSecond)
+  } else {
+      clearInterval(playInterval)
+  }
 }
 
 function main() {
-    const gl = $('#board-canvas')[0].getContext('webgl');
-    var board
-    var rulespace
-    var lastUpdate
-    var iterationsPerSecond
-    var isPlaying = false;
+  gl = $('#board-canvas')[0].getContext('webgl');
 
-    function initRulespace(name) {
-        return {
-            "LifeLike2D": new LifeLike2D(gl, board)
-        }[name]
-    }
+  function initRulespace(name) {
+      return {
+          "Life2D": new Life2D(gl, board)
+      }[name]
+  }
 
-    board = new AutomatonBoard([50, 50])
-    board.setCellStateIndexByCoord([1, 2], 1)
-    board.setCellStateIndexByCoord([2, 3], 1)
-    board.setCellStateIndexByCoord([3, 1], 1)
-    board.setCellStateIndexByCoord([3, 2], 1)
-    board.setCellStateIndexByCoord([3, 3], 1)
-    rulespace = initRulespace("LifeLike2D")
+  board = new AutomatonBoard([50, 50])
+  board.setCellStateIndexByCoord([1, 2], 1)
+  board.setCellStateIndexByCoord([2, 3], 1)
+  board.setCellStateIndexByCoord([3, 1], 1)
+  board.setCellStateIndexByCoord([3, 2], 1)
+  board.setCellStateIndexByCoord([3, 3], 1)
+  rulespace = initRulespace("Life2D", board)
 
-    $("#ruleset-select").select2();
-    requestAnimationFrame(render)
+  requestAnimationFrame(render)
 }
 
-$(main)
+$(() => {
+  //$('.select2-enable').select2();
+  //$("#ruleset-select").select2();
+
+  main()
+})
