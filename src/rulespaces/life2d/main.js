@@ -8,9 +8,13 @@ import drawFragmentShader from "./shaders/draw.frag"
 export default class Life2D {
     stepShader;
     drawShader;
-    vbo;
+    positionBuffer;
+    texcoordBuffer;
     fbo;
     matrix;
+
+    positionLocation;
+    texcoordLocation;
 
     birthTexture;
     surviveTexture;
@@ -22,13 +26,8 @@ export default class Life2D {
     height;
 
     constructor(gl, board) {
-        // setup gl
-        const m4 = twgl.m4;
-
         this.stepShader = twgl.createProgramInfo(gl, [stepVertexShader, stepFragmentShader]);
         this.drawShader = twgl.createProgramInfo(gl, [drawVertexShader, drawFragmentShader]);
-        this.matrix = m4.ortho(0, gl.canvas.width, gl.canvas.height, 0, -1, 1);
-        m4.scale(this.matrix, [gl.canvas.width, gl.canvas.height, 1], this.matrix);
 
         this.textureLoop = [null, null]
 
@@ -55,41 +54,37 @@ export default class Life2D {
         }
     
         this.fbo = gl.createFramebuffer()
-        this.vbo = gl.createBuffer()
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo)
-        gl.bufferData(gl.ARRAY_BUFFER, [ -1,-1,   -1,-1,   1,-1,  1,-1,  -1,1,  1, 1 ], gl.STATIC_DRAW)
+        this.positionLocation = gl.getAttribLocation(this.drawShader.program, "a_position");
+        this.positionBuffer = gl.createBuffer()
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer)
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ -1,1,   1,1,   -1,-1,  -1,-1,  1,1,  1,-1 ]), gl.STATIC_DRAW)
+
+        this.texcoordLocation = gl.getAttribLocation(this.drawShader.program, "a_texcoord");
+        this.texcoordBuffer = gl.createBuffer()
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.texcoordBuffer)
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ -1,1,   1,1,   -1,-1,  -1,-1,  1,1,  1,-1 ]), gl.STATIC_DRAW)
 
         this.width = board.dimensions[0]
         this.height = board.dimensions[1]
 
-        this.birthTexture = gl.createTexture()
-        gl.bindTexture(gl.TEXTURE_2D, this.birthTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 9, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([
-            0, 0, 0, 0, 
-            0, 0, 0, 0, 
-            0, 0, 0, 0, 
-            1, 1, 1, 1,
-            0, 0, 0, 0, 
-            0, 0, 0, 0, 
-            0, 0, 0, 0, 
-            0, 0, 0, 0, 
-            0, 0, 0, 0
-        ]))
+        this.birthTexture = this.createRuleTexture(gl, [0, 0, 0, 1, 0, 0, 0, 0, 0])
+        this.surviveTexture = this.createRuleTexture(gl, [0, 0, 1, 1, 0, 0, 0, 0, 0])
+    }
 
-        this.surviveTexture = gl.createTexture()
-        gl.bindTexture(gl.TEXTURE_2D, this.birthTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 9, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([
-            0, 0, 0, 0, 
-            0, 0, 0, 0, 
-            1, 1, 1, 1, 
-            1, 1, 1, 1,
-            0, 0, 0, 0, 
-            0, 0, 0, 0, 
-            0, 0, 0, 0, 
-            0, 0, 0, 0, 
-            0, 0, 0, 0
-        ]))
+    createRuleTexture(gl, rule) {
+        let texture = gl.createTexture()
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+
+        let textureData = []
+
+        rule.forEach(r => {
+            textureData.push(...[r, r, r, r])
+        });
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 9, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(textureData))
+
+        return texture
     }
     
     step(gl) {
@@ -116,16 +111,28 @@ export default class Life2D {
     }
     
     draw(gl) {
-        gl.useProgram(this.drawShader.program);
+        const m4 = twgl.m4
+        const matrix = m4.ortho(0, gl.canvas.width, gl.canvas.height, 0, -1, 1);
+        m4.scale(matrix, [gl.canvas.width, gl.canvas.height, 1], matrix);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo)
-
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         gl.clearColor(0, 1, 0, 1);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
+        gl.useProgram(this.drawShader.program);
+
+        gl.enableVertexAttribArray(this.positionLocation);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer)
+        gl.vertexAttribPointer(this.positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+        gl.enableVertexAttribArray(this.texcoordLocation);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.texcoordBuffer)
+        gl.vertexAttribPointer(this.texcoordLocation, 2, gl.FLOAT, false, 0, 0);
+
         twgl.setUniforms(this.drawShader.program, {
-            uMatrix: this.matrix,
-            uTexture: this.textureLoop[this.loopIndex]    
+            u_matrix: matrix,
+            u_texture: this.textureLoop[this.loopIndex],
+            u_gridSize: [this.width, this.height]
         });
     
         gl.enable(gl.BLEND);
@@ -137,7 +144,7 @@ export default class Life2D {
             gl.deleteTexture(this.textureLoop[i])
         }
 
-        gl.deleteBuffer(this.vbo)
+        gl.deleteBuffer(this.positionBuffer)
         gl.deleteFrameBuffer(this.fbo)
         gl.deleteProgram(this.drawShader.program)
         gl.deleteProgram(this.stepShader.program)

@@ -149,7 +149,7 @@ function render(time) {
 
   if (update || rulespace.updateRequested) {
       rulespace.updateRequested = false
-      rulespace.step(gl)
+      //rulespace.step(gl)
   }
 
   if (update || rulespace.drawRequested) {

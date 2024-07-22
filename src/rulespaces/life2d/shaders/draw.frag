@@ -1,13 +1,13 @@
 precision highp float;
 
-uniform sampler2D uTilemap;
-uniform vec2 uGridSize;
+uniform sampler2D u_tilemap;
+uniform vec2 u_gridSize;
 
-varying vec2 vCoord;
+varying vec2 v_coord;
+varying vec2 v_texcoord; 
 
 void main() {
-  vec2 coord = vCoord;
-  vec4 color = texture2D(uTilemap, coord * uGridSize);
+  vec4 color = texture2D(u_tilemap, v_coord);
   
-  gl_FragColor = vec4(1, 1, 0, 1);
+  gl_FragColor = color;
 }
