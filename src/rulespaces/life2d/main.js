@@ -1,9 +1,9 @@
-import { parseBSRuleString } from "./rules";
-
 import stepVertexShader from "./shaders/step.vert"
 import stepFragmentShader from "./shaders/step.frag"
 import drawVertexShader from "./shaders/draw.vert"
 import drawFragmentShader from "./shaders/draw.frag"
+
+import * as twgl from "twgl.js"
 
 export default class Life2D {
     stepShader;

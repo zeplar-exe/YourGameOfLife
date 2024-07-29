@@ -1,9 +1,9 @@
-import { parseBSRuleString } from "./rules";
+import * as twgl from "twgl.js"
 
-import stepVertexShader from "./shaders/step.vert"
-import stepFragmentShader from "./shaders/step.frag"
-import drawVertexShader from "./shaders/draw.vert"
-import drawFragmentShader from "./shaders/draw.frag"
+const stepVertexShader = require("./shaders/step.vert")
+const stepFragmentShader = require("./shaders/step.frag")
+const drawVertexShader = require("./shaders/draw.vert")
+const drawFragmentShader = require("./shaders/draw.frag")
 
 export default class TestRulespace {
     matrix;
@@ -58,11 +58,11 @@ export default class TestRulespace {
     }
 
     constructor(gl, board) {
-        this.width = board.dimensions[0]
-        this.height = board.dimensions[1]
+        this.width = board.width
+        this.height = board.height
 
         this.matrix = twgl.m4.ortho(0, gl.canvas.width, gl.canvas.height, 0, -1, 1);
-
+        
         this.stepShader = twgl.createProgramInfo(gl, [stepVertexShader, stepFragmentShader]);
         this.drawShader = twgl.createProgramInfo(gl, [drawVertexShader, drawFragmentShader]);
 
@@ -71,7 +71,7 @@ export default class TestRulespace {
         for (let i = 0; i < board.data.length; i++) {
             let n = 0
 
-            if ((Math.random() > 0.95)) {
+            if (board.data[i] === 1) {
                 n = 255
             }
 
