@@ -10,9 +10,10 @@ body {
 }
 
 #board-canvas {
-    width: 1000px;
-    height: 500px;
+    width: 750px;
+    height: 750px;
     cursor: grab;
+    image-rendering: pixelated;
 }
 
 .overlay {

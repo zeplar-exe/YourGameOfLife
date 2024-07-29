@@ -1,14 +1,14 @@
-attribute vec2 a_position;
-attribute vec2 a_texcoord;
+attribute vec2 aPosition;
+attribute vec2 aTexcoord;
 
-uniform mat4 u_matrix;
+uniform mat4 uMatrix;
 
-varying vec2 v_coord;
-varying vec2 v_texcoord; 
+varying vec2 vCoord;
+varying vec2 vTexcoord; 
 
 void main() {
-    gl_Position = vec4(a_position, 0, 0);
+    gl_Position = vec4(aPosition, 0, 0);
 
-    v_coord = a_position;
-    v_texcoord = a_texcoord;
+    vCoord = aPosition;
+    vTexcoord = aTexcoord;
 }

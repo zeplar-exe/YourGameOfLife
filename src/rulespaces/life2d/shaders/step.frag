@@ -1,6 +1,6 @@
 precision highp float;
 
-uniform sampler2D uPrevious;
+uniform sampler2D uGrid;
 uniform vec2 uPhysicalCellSize;
 uniform sampler2D uBirth;
 uniform sampler2D uSurvive;
@@ -8,16 +8,16 @@ uniform sampler2D uSurvive;
 varying vec2 vCoord;
 
 void main() {
-  float topLeft = texture2D(uPrevious, vCoord + vec2(-1, -1) * uPhysicalCellSize).x;
-  float left = texture2D(uPrevious, vCoord + vec2(-1, +0) * uPhysicalCellSize).x;
-  float bottomLeft = texture2D(uPrevious, vCoord + vec2(-1, +1) * uPhysicalCellSize).x;
-  float top = texture2D(uPrevious, vCoord + vec2(+0, -1) * uPhysicalCellSize).x;
-  float bottom = texture2D(uPrevious, vCoord + vec2(+0, +1) * uPhysicalCellSize).x;
-  float topRight = texture2D(uPrevious, vCoord + vec2(+1, -1) * uPhysicalCellSize).x;
-  float right = texture2D(uPrevious, vCoord + vec2(+1, +0) * uPhysicalCellSize).x;
-  float bottomRight = texture2D(uPrevious, vCoord + vec2(+1, +1) * uPhysicalCellSize).x;
+  float topLeft = texture2D(uGrid, vCoord + vec2(-1, -1) * uPhysicalCellSize).x;
+  float left = texture2D(uGrid, vCoord + vec2(-1, +0) * uPhysicalCellSize).x;
+  float bottomLeft = texture2D(uGrid, vCoord + vec2(-1, +1) * uPhysicalCellSize).x;
+  float top = texture2D(uGrid, vCoord + vec2(+0, -1) * uPhysicalCellSize).x;
+  float bottom = texture2D(uGrid, vCoord + vec2(+0, +1) * uPhysicalCellSize).x;
+  float topRight = texture2D(uGrid, vCoord + vec2(+1, -1) * uPhysicalCellSize).x;
+  float right = texture2D(uGrid, vCoord + vec2(+1, +0) * uPhysicalCellSize).x;
+  float bottomRight = texture2D(uGrid, vCoord + vec2(+1, +1) * uPhysicalCellSize).x;
 
-  float current = texture2D(uPrevious, vCoord).x;
+  float current = texture2D(uGrid, vCoord).x;
 
   int neighbors = 8 - int(topLeft + left + bottomLeft + top + bottom + topRight + right + bottomRight);
 
