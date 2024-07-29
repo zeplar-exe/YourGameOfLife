@@ -52,25 +52,19 @@ body {
     background-color: rgba(208, 208, 208, 0.403);
 }
 
-#rulset-explorer {
-    width: 300px;
-    height: 100%;
+#ruleset-explorer {
     background-color: gray;
     display: flex;
     flex-direction: column;
     border: 5px solid transparent;
 }
 
-#rulset-explorer-view {
+#ruleset-explorer-view {
     width: 100%;
     background-color: white;
     margin-top: 5px;
     margin-bottom: 10px;
     flex-grow: 1;
-}
-
-#ruleset-flag {
-
 }
 
 #ruleset-select {

@@ -1,4 +1,6 @@
 import "./index.css"
+import "./layout.css"
+
 import $ from "jquery"
 
 import AutomatonBoard from "./life.js"
@@ -9,13 +11,19 @@ var gl;
 var board;
 var rulespace;
 var timeOfLastUpdate = 0;
-var iterationsPerSecond = 1;
+var generationsPerSecond = 30;
+var stepsPerIteration = 1
+var iterationFailsafe = 5000
 var isPlaying = true;
 
 function render(time) {
   let update;
+  let timeElapsed = time - timeOfLastUpdate
 
-  if ((time - timeOfLastUpdate) > (1000 / iterationsPerSecond)) {
+  if (timeElapsed > iterationFailsafe)
+    isPlaying = false
+
+  if (timeElapsed > (1000 / generationsPerSecond)) {
       timeOfLastUpdate = time
       update = true
   }
@@ -32,19 +40,41 @@ function render(time) {
       rulespace.draw(gl)
   }
 
+  if (update) {
+    $("#real-iter").text(Math.round(Math.min(stepsPerIteration * (1000 / timeElapsed), generationsPerSecond)))
+
+    for (let i = 1; i < stepsPerIteration; i++) {
+      rulespace.step(gl)
+      rulespace.draw(gl)
+    }
+  }
+
   requestAnimationFrame(render)
 }
 
-function playPause() {
+window.playPause = function() {
   isPlaying = !isPlaying;
 
   $("#step-button").prop("disabled", isPlaying)
+  $("#iter-input").prop("disabled", isPlaying)
+  $("#iter-failsafe").prop("disabled", isPlaying)
+}
 
-  if (isPlaying) {
-      playInterval = setInterval(step, 1000 / stepsPerSecond)
-  } else {
-      clearInterval(playInterval)
+window.step = function() {
+  rulespace.step(gl)
+  rulespace.draw(gl)
+}
+
+window.generationRateChanged = function() {
+  generationsPerSecond = $("#iter-input").val()
+
+  if (generationsPerSecond > 60) {
+    stepsPerIteration = Math.ceil(generationsPerSecond / 60)
   }
+}
+
+window.failsafeChanged = function() {
+  iterationFailsafe = $("#iter-failsafe").val()
 }
 
 function main() {
@@ -57,7 +87,7 @@ function main() {
       }[name]
   }
 
-  board = new AutomatonBoard([10, 10])
+  board = new AutomatonBoard([500, 500])
   board.setCellStateIndexByCoord([1, 2], 1)
   board.setCellStateIndexByCoord([2, 3], 1)
   board.setCellStateIndexByCoord([3, 1], 1)
@@ -71,8 +101,5 @@ function main() {
 }
 
 $(() => {
-  //$('.select2-enable').select2();
-  //$("#ruleset-select").select2();
-  
   main()
 })

@@ -1,0 +1,28 @@
+.grid-container {  
+    display: grid;
+    grid-template-columns: 0.5fr 2fr 0.5fr;
+    grid-template-rows: 0.5fr 1.5fr 1fr;
+    gap: 0px 0px;
+    grid-auto-flow: row;
+    grid-template-areas:
+      "topbar topbar topbar"
+      "sidebar-left main sidebar-right"
+      "sidebar-left main sidebar-right";
+}
+  
+.main { grid-area: main; }
+  
+.sidebar-left { 
+    grid-area: sidebar-left; 
+    background-color: gainsboro;
+}
+  
+.sidebar-right { 
+    grid-area: sidebar-right; 
+    background-color: gainsboro;
+}
+  
+.topbar { 
+    grid-area: topbar; 
+    background-color: tan;
+}

@@ -71,7 +71,7 @@ export default class TestRulespace {
         for (let i = 0; i < board.data.length; i++) {
             let n = 0
 
-            if ((Math.random() > 0.97)) {
+            if ((Math.random() > 0.95)) {
                 n = 255
             }
 
