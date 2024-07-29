@@ -1,4 +1,4 @@
-html, body {
+html, body, #root {
     width: 100%;
     height: 100%;
     overflow: hidden;
@@ -10,19 +10,10 @@ body {
 }
 
 #board-canvas {
-    width: 750px;
-    height: 750px;
-    cursor: grab;
-    image-rendering: pixelated;
-}
-
-.overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1000;
+    cursor: grab;
+    image-rendering: pixelated;
 }
 
 #title-input-container {
@@ -50,24 +41,4 @@ body {
 
 #title-input:hover {
     background-color: rgba(208, 208, 208, 0.403);
-}
-
-#ruleset-explorer {
-    background-color: gray;
-    display: flex;
-    flex-direction: column;
-    border: 5px solid transparent;
-}
-
-#ruleset-explorer-view {
-    width: 100%;
-    background-color: white;
-    margin-top: 5px;
-    margin-bottom: 10px;
-    flex-grow: 1;
-}
-
-#ruleset-select {
-    width: 100%;
-    height: auto;
 }
