@@ -98,16 +98,20 @@ function App() {
   }
 
   useEffect(() => {
+    console.log("ef")
     if (canvasRef.current) {
+        console.log("can")
         gl = canvasRef.current.getContext("webgl2")
 
         let board = {
             width: 500,
             height: 500,
-            data: Array(500 * 500).fill(0).map(() =>
-              Math.random() > 0.85 ? 0 : 1
-            ),
+            data: Array(500 * 500),
         };
+
+        for (let i = 0; i < board.width * board.height; i++) {
+          board.data[i] = Math.random() > 0.95 ? 0 : 1
+        }
 
         rulespace = initRulespace("Life2D", board);
         rulespace.draw(gl);
@@ -152,6 +156,7 @@ function App() {
           onChange={failsafeChanged}
         ></input>
         <span>Refresh Rate: {refreshRateRef.current}</span>
+        <br/>
       </div>
       <div className={"main"}>
       <PanZoom ref={panZoomRef}>
