@@ -10,9 +10,9 @@ import PanZoom from "@sasza/react-panzoom";
 
 function App() {
   var gl;
-  var rulespace;
 
   const panZoomRef = React.useRef()
+  const rulespaceRef = React.useRef()
 
   const isPlayingRef = React.useRef(true)
   const timeOfLastUpdateRef = React.useRef(0)
@@ -27,6 +27,9 @@ function App() {
   const [realIterations, setRealIterations] = React.useState(0)
   const [generations, setGenerations] = React.useState(0)
 
+  const [randomness, setRandomness] = React.useState(0.75)
+  const [boardSize, setBoardSize] = React.useState([500, 500])
+
   const canvasRef = React.useRef()
 
   function playPause() {
@@ -35,8 +38,8 @@ function App() {
   }
 
   function step() {
-    rulespace.step(gl);
-    rulespace.draw(gl);
+    rulespaceRef.current.step(gl);
+    rulespaceRef.current.draw(gl);
   }
 
   function generationRateChanged(e) {
@@ -65,22 +68,22 @@ function App() {
 
     update = update && isPlayingRef.current;
 
-    if (update || rulespace.updateRequested) {
-      rulespace.updateRequested = false;
-      rulespace.step(gl);
+    if (update || rulespaceRef.current.updateRequested) {
+      rulespaceRef.current.updateRequested = false;
+      rulespaceRef.current.step(gl);
     }
 
-    if (update || rulespace.drawRequested) {
-      rulespace.drawRequested = false;
-      rulespace.draw(gl);
+    if (update || rulespaceRef.current.drawRequested) {
+      rulespaceRef.current.drawRequested = false;
+      rulespaceRef.current.draw(gl);
     }
 
     if (update) {
       setRealIterations(Math.round(Math.min(stepsPerIterationRef.current * (1000 / timeElapsed), generationsPerSecondRef.current)));
 
       for (let i = 1; i < stepsPerIterationRef.current; i++) {
-        rulespace.step(gl);
-        rulespace.draw(gl);
+        rulespaceRef.current.step(gl);
+        rulespaceRef.current.draw(gl);
       }
 
       setGenerations(generations + stepsPerIterationRef.current)
@@ -97,26 +100,32 @@ function App() {
     return new c(gl, board)
   }
 
+  function startGame() {
+    let already = !!gl
+    gl = canvasRef.current.getContext("webgl2")
+
+    let board = {
+        width: boardSize[0],
+        height: boardSize[1],
+        data: Array(boardSize[0] * boardSize[1]),
+    };
+
+    for (let i = 0; i < board.width * board.height; i++) {
+      board.data[i] = Math.random() > randomness ? 0 : 1
+    }
+
+    rulespaceRef.current = initRulespace("Life2D", board);
+    rulespaceRef.current.draw(gl);
+
+    if (!already)
+      requestAnimationFrame(render);
+  }
+
   useEffect(() => {
     console.log("ef")
     if (canvasRef.current) {
         console.log("can")
-        gl = canvasRef.current.getContext("webgl2")
-
-        let board = {
-            width: 500,
-            height: 500,
-            data: Array(500 * 500),
-        };
-
-        for (let i = 0; i < board.width * board.height; i++) {
-          board.data[i] = Math.random() > 0.95 ? 0 : 1
-        }
-
-        rulespace = initRulespace("Life2D", board);
-        rulespace.draw(gl);
-    
-        requestAnimationFrame(render);
+        startGame()
     }
   }, [])
 
@@ -125,6 +134,7 @@ function App() {
       <div className={"topbar"}>
         <button id="step-button" disabled={isPlaying} onClick={step}>Step</button>
         <button onClick={playPause}>PlayPause</button>
+        <button onClick={startGame}>Restart</button>
         <div id="title-input-container">
           <input
             id="title-input"
@@ -157,6 +167,8 @@ function App() {
         ></input>
         <span>Refresh Rate: {refreshRateRef.current}</span>
         <br/>
+        <label for="rand">Initial Randomness</label>
+        <input name="rand" defaultValue={randomness} onChange={(e) => { setRandomness(parseFloat(e.target.value)) }}></input>
       </div>
       <div className={"main"}>
       <PanZoom ref={panZoomRef}>
